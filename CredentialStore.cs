@@ -326,14 +326,14 @@ namespace VMware.Security.CredentialStore
         /// Returns all hosts that have entries in the credential store.
         /// </summary>
         /// <exception cref="IOException"/>
-        public IEnumerable<string> GetHosts()
+        public IEnumerable<string> GetFriendlyNames()
         {
             if (this.objectAlreadyDisposed)
             {
                 throw new ObjectDisposedException("CredentialStore");
             }
 
-            Dictionary<string, string> hosts = new Dictionary<string, string>();
+            Dictionary<string, string> friendlyNames = new Dictionary<string, string>();
 
             if (File.Exists(this.credentialFilePath))
             {
@@ -353,13 +353,13 @@ namespace VMware.Security.CredentialStore
                     {
                         if (IsValidPasswordEntryNode(credentialNode))
                         {
-                            string host = credentialNode[FriendlyNameElementName].InnerText;
-                            string loweredHost = host.ToLower();
+                            string friendlyName = credentialNode[FriendlyNameElementName].InnerText;
+                            string lowerFriendlyName = friendlyName.ToLower();
 
                             // Add the item if it's not already in the list
-                            if (!hosts.ContainsKey(loweredHost))
+                            if (!friendlyNames.ContainsKey(lowerFriendlyName))
                             {
-                                hosts[loweredHost] = host;
+                                friendlyNames[lowerFriendlyName] = friendlyName;
                             }
                         }
                     }
@@ -373,7 +373,7 @@ namespace VMware.Security.CredentialStore
                 }
             }
 
-            return hosts.Keys;
+            return friendlyNames.Keys;
         }
 
         /// <summary>
@@ -481,7 +481,7 @@ namespace VMware.Security.CredentialStore
         /// <returns><code>true</code> if the password existed and was removed
         /// </returns>
         /// <exception cref="IOException"/>
-        public bool RemovePassword(string host, string username)
+        public bool RemovePassword(string friendlyName, string username)
         {
             if (this.objectAlreadyDisposed)
             {
@@ -502,7 +502,7 @@ namespace VMware.Security.CredentialStore
                        LoadCredentialsDocument(credentialsFile);
 
                     XmlNode nodeToRemove =
-                       GetCredentialNode(credentialsXmlDocument, host, username);
+                       GetCredentialNode(credentialsXmlDocument, friendlyName);
 
                     result = nodeToRemove != null;
 

@@ -75,7 +75,7 @@ namespace VMware.Security.CredentialStore
         /// Returns all hosts that have entries in the credential store.
         /// </summary>
         /// <returns>Host names.</returns>
-        IEnumerable<string> GetHosts();
+        IEnumerable<string> GetFriendlyNames();
 
         /// <summary>
         /// Returns all usernames that have passwords stored for a given host.
