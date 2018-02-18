@@ -58,24 +58,29 @@ namespace VMware.Security.CredentialStore
            "/" + ViCredentialsElementName;
 
         /// <summary>
-        /// Element name.
+        /// Element Id.
         /// </summary>
-        private const string HostElementName = "host";
+        private const string IdElementName = "Id";
 
         /// <summary>
         /// Element name.
         /// </summary>
-        private const string PasswordElementName = "password";
+        private const string FriendlyNameElementName = "FriendlyName";
 
         /// <summary>
         /// Element name.
         /// </summary>
-        private const string UsernameElementName = "username";
+        private const string PasswordElementName = "Password";
 
         /// <summary>
         /// Element name.
         /// </summary>
-        private const string VersionElementName = "version";
+        private const string UsernameElementName = "Username";
+
+        /// <summary>
+        /// Element name.
+        /// </summary>
+        private const string VersionElementName = "Version";
 
         /// <summary>
         /// Element name.
@@ -117,7 +122,7 @@ namespace VMware.Security.CredentialStore
         static CredentialStore()
         {
             // Look into the configuration file for a default credentials file path
-            string settingFromConfigFile = @"C:\Users\akag\Desktop\Cert\VmWareCred";
+            string settingFromConfigFile = @"C:\Users\akag\Desktop\Cert\VmWareCred.xml";
             if (!string.IsNullOrEmpty(settingFromConfigFile))
             {
                 DefaultCredentialFilePath = settingFromConfigFile;
@@ -179,22 +184,21 @@ namespace VMware.Security.CredentialStore
         /// <returns><code>true</code> if a password for this host and username
         /// did not already exist</returns>
         /// <exception cref="IOException"/>
-        public bool AddPassword(string host, string username, char[] password)
+        public bool AddPassword(string friendlyName, string id, string username, char[] password)
         {
             if (this.objectAlreadyDisposed)
             {
                 throw new ObjectDisposedException("CredentialStore");
             }
 
-            if (string.IsNullOrEmpty(host))
+            if (string.IsNullOrEmpty(friendlyName))
             {
-                throw new ArgumentException("Host name cannot be empty.", "host");
+                throw new ArgumentException("Friendly name cannot be empty.", "friendlyName");
             }
 
             if (string.IsNullOrEmpty(username))
             {
-                throw new ArgumentException(
-                   "User name cannot be empty.", "username");
+                throw new ArgumentException("User name cannot be empty.", "username");
             }
 
             if (password == null)
@@ -233,7 +237,7 @@ namespace VMware.Security.CredentialStore
 
                 // Check if a password exists for this host
                 XmlNode credentialNode =
-                   GetCredentialNode(credentialsXmlDocument, host, username);
+                   GetCredentialNode(credentialsXmlDocument, friendlyName);
 
                 result = credentialNode == null;
 
@@ -248,7 +252,7 @@ namespace VMware.Security.CredentialStore
                     credentialNode.RemoveAll();
                 }
 
-                FillCredentialNode(credentialNode, host, username, password);
+                FillCredentialNode(credentialNode, friendlyName, id, username, password);
 
                 // Clear the password so it does not reside in memory in clear text
                 Array.Clear(password, 0, password.Length);
@@ -349,7 +353,7 @@ namespace VMware.Security.CredentialStore
                     {
                         if (IsValidPasswordEntryNode(credentialNode))
                         {
-                            string host = credentialNode[HostElementName].InnerText;
+                            string host = credentialNode[FriendlyNameElementName].InnerText;
                             string loweredHost = host.ToLower();
 
                             // Add the item if it's not already in the list
@@ -445,7 +449,7 @@ namespace VMware.Security.CredentialStore
                         if (IsValidPasswordEntryNode(credentialNode))
                         {
                             string hostEntry =
-                               credentialNode[HostElementName].InnerText;
+                               credentialNode[FriendlyNameElementName].InnerText;
 
                             // Host comparison is case-insensitive
                             if (
@@ -547,19 +551,21 @@ namespace VMware.Security.CredentialStore
         /// 
         /// </summary>
         /// <param name="element"></param>
-        /// <param name="host"></param>
+        /// <param name="friendlyName"></param>
+        /// <param name="id"></param>
         /// <param name="username"></param>
         /// <param name="password"></param>
         private static void FillCredentialNode(
            XmlNode element,
-           string host,
+           string friendlyName,
+           string id,
            string username,
            char[] password)
         {
-            XmlElement hostElement =
-               element.OwnerDocument.CreateElement(HostElementName);
-            hostElement.InnerText = host;
-            element.AppendChild(hostElement);
+            XmlElement friendlyNameElement =
+               element.OwnerDocument.CreateElement(FriendlyNameElementName);
+            friendlyNameElement.InnerText = friendlyName;
+            element.AppendChild(friendlyNameElement);
 
             XmlElement usernameElement =
                element.OwnerDocument.CreateElement(UsernameElementName);
@@ -568,20 +574,24 @@ namespace VMware.Security.CredentialStore
 
             XmlElement passElement =
                element.OwnerDocument.CreateElement(PasswordElementName);
-            passElement.InnerText = ObfuscatePassword(password, host, username);
-
+            passElement.InnerText = ObfuscatePassword(password, friendlyName, username);
             element.AppendChild(passElement);
+
+            XmlElement idElement =
+               element.OwnerDocument.CreateElement(IdElementName);
+            idElement.InnerText = id;
+            element.AppendChild(idElement);
         }
 
         /// <summary>
         /// Returns the credential node which is holding password for this host and username
         /// </summary>
         /// <param name="credentialsXmlDocument"></param>
-        /// <param name="host">The host - search is case-insensitive.</param>
+        /// <param name="friendlyName">The host - search is case-insensitive.</param>
         /// <param name="username">The username - search is case-sensitive.</param>
         /// <returns>The node if found, else 'null'.</returns>
         private static XmlNode GetCredentialNode(
-           XmlDocument credentialsXmlDocument, string host, string username)
+           XmlDocument credentialsXmlDocument, string friendlyName, string username = null)
         {
             XmlNode result = null;
 
@@ -593,20 +603,22 @@ namespace VMware.Security.CredentialStore
                 if (IsValidPasswordEntryNode(passwordEntryNode))
                 {
                     string hostEntry =
-                       passwordEntryNode[HostElementName].InnerText;
+                       passwordEntryNode[FriendlyNameElementName].InnerText;
 
                     // Host comparison is case-insensitive
-                    if (hostEntry.Equals(host, StringComparison.OrdinalIgnoreCase))
+                    if (hostEntry.Equals(friendlyName, StringComparison.OrdinalIgnoreCase))
                     {
-                        string usernameEntry =
-                           passwordEntryNode[UsernameElementName].InnerText;
+                        result = passwordEntryNode;
+                        break;
+                        ////string usernameEntry =
+                        ////   passwordEntryNode[UsernameElementName].InnerText;
 
-                        // Username comparison is case-sensitive
-                        if (usernameEntry == username)
-                        {
-                            result = passwordEntryNode;
-                            break;
-                        }
+                        ////// Username comparison is case-sensitive
+                        ////if (usernameEntry == username)
+                        ////{
+                        ////    result = passwordEntryNode;
+                        ////    break;
+                        ////}
                     }
                 }
             }
@@ -701,7 +713,7 @@ namespace VMware.Security.CredentialStore
         {
             bool result = true;
             result &= node.Name == CredentialEntryElementName;
-            result &= node[HostElementName] != null;
+            result &= node[FriendlyNameElementName] != null;
             result &= node[UsernameElementName] != null;
             result &= node[PasswordElementName] != null;
             return result;

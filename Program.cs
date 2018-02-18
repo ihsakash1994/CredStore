@@ -41,8 +41,8 @@ namespace ConsoleApp2
         static void Main(string[] args)
         {
             CredentialStore x = CredentialStoreFactory.CreateCredentialStore() as CredentialStore;
-            char[] pass = { 's', 's', 's' };
-            x.AddPassword("ss", "s", pass);
+            char[] pass = { 'p', 'a', 's', 's' };
+            x.AddPassword("Cred-2", Guid.NewGuid().ToString(), "User", pass);
         }
     }
 }

@@ -48,12 +48,13 @@ namespace VMware.Security.CredentialStore
         /// Stores the password for a given host and username. If a password
         /// already exists for that host and username, it is overwritten.
         /// </summary>
-        /// <param name="host">Host name.</param>
+        /// <param name="friendlyName">Friendly name.</param>
+        /// <param name="id">Credential id.</param>
         /// <param name="username">User name.</param>
         /// <param name="password">The password.</param>
         /// <returns><code>true</code> if a password for this host and username
         /// did not already exist.</returns>
-        bool AddPassword(string host, string username, char[] password);
+        bool AddPassword(string friendlyName, string id, string username, char[] password);
 
         /// <summary>
         /// Removes the password for a given host and username. If no such
